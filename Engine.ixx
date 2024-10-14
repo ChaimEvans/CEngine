@@ -17,6 +17,7 @@ import CEngine.Logger;
 import CEngine.Event;
 import CEngine.Node;
 import CEngine.Render;
+import CEngine.UI;
 
 namespace CEngine {
     /**
@@ -130,6 +131,8 @@ namespace CEngine {
         glfwSwapInterval(0); // 关闭垂直同步
         LogS(TAG) << "窗口创建成功.";
 
+        UI::InitUI(window);
+
         if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
             LogE(TAG) << "GLAD加载失败!";
             glfwTerminate();
@@ -145,7 +148,6 @@ namespace CEngine {
     }
 
     int Engine::Loop() {
-
         Ready();
         double last_clock = clock();
         while (!glfwWindowShouldClose(window)) {
@@ -189,5 +191,6 @@ namespace CEngine {
             if (const auto ru3d = dynamic_cast<RenderUnit3D *>(node); ru3d != nullptr)
                 ru3d->Render();
         }
+        UI::ProcessUI();
     }
 }
