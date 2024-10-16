@@ -84,8 +84,9 @@ namespace CEngine {
         Texture &operator=(Texture &tex) = delete;
 
         ~Texture() override {
-            All_Instances.erase(Md5);
             glDeleteTextures(1, &TextureID);
+            /// todo ↓这里↓会保存，不知道为啥
+            //All_Instances.erase(Md5);
         }
 
         void Bind() const {

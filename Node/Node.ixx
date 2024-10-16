@@ -39,6 +39,10 @@ namespace CEngine {
             }
         }
 
+        virtual const char *GetTypeName() {
+            return "Node";
+        }
+
         /**
          * 获取子级数量
          * @return 子级数量

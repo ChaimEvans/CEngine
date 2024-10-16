@@ -30,12 +30,16 @@ namespace CEngine {
          */
         virtual void Render() {
             shader_program->Use();
-            shader_program->SetUniform(0, getWorldMatrix());
+            shader_program->SetUniform(0, GetWorldMatrix());
             if (!uniforms.empty())
                 for (auto [name, values]: uniforms) {
                     shader_program->SetUniform_p1(name.c_str(), values);
                 }
             mesh->Render();
+        }
+
+        const char *GetTypeName() override {
+            return "RenderUnit3D";
         }
 
         /**

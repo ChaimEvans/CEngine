@@ -19,9 +19,13 @@ namespace CEngine {
 
         void Render() override {
             shader_program->Use();
-            shader_program->SetUniform(0, getWorldMatrix());
+            shader_program->SetUniform(0, GetWorldMatrix());
             Mat.Use(shader_program);
             mesh->Render();
+        }
+
+        const char *GetTypeName() override {
+            return "PBR3D";
         }
 
         template<typename... Args>

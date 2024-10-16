@@ -26,9 +26,9 @@ namespace CEngine::ModelImporter {
         auto n3d = Node3D::Create();
         n3d->setName(node->mName.data);
         if (transform_scale == 1.0f)
-            n3d->setModelMatrix(Utils::aiMatrix4x4ToGlmMat4(node->mTransformation));
+            n3d->SetModelMatrix(Utils::aiMatrix4x4ToGlmMat4(node->mTransformation));
         else
-            n3d->setModelMatrix(glm::scale(Utils::aiMatrix4x4ToGlmMat4(node->mTransformation), glm::vec3(transform_scale)));
+            n3d->SetModelMatrix(glm::scale(Utils::aiMatrix4x4ToGlmMat4(node->mTransformation), glm::vec3(transform_scale)));
         for (unsigned int i = 0; i < node->mNumMeshes; i++) {
             const aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
             std::vector<VertexInfo> vertices;

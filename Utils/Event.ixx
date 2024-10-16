@@ -53,9 +53,8 @@ namespace CEngine {
             Functions.push_back([t](ArgTypes... args) -> rRes {
                 if constexpr (std::is_base_of_v<Object, T>) {
                     /* 如果是Object的子类，增加对象可用判断 */
-                    if (const auto obj_ptr = static_cast<Object *>(std::get<0>(t)); obj_ptr != nullptr && obj_ptr->IsValid()) {
+                    if (const auto obj_ptr = static_cast<Object *>(std::get<0>(t)); obj_ptr != nullptr && obj_ptr->IsValid())
                         return {std::invoke(std::get<1>(t), std::get<0>(t), args...)};
-                    }
                     return std::nullopt; // 对象不可用
                 } else {
                     /* 不是Object的子类，直接执行 */
@@ -77,8 +76,13 @@ namespace CEngine {
                 }
             } else {
                 std::vector<std::optional<Res> > res;
-                for (auto &f: Functions) {
-                    res.push_back(std::invoke(f, args...));
+                for (auto it = Functions.begin(); it != Functions.end();) {
+                    auto r = std::invoke(*it, args...);
+                    if (r == std::nullopt)
+                        it = Functions.erase(it); // 对象已失效
+                    else
+                        ++it;
+                    res.push_back(std::move(r));
                 }
                 return res;
             }

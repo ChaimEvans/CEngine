@@ -44,21 +44,25 @@ namespace CEngine {
         * 引擎主循环
         * @remark 堵塞型
         */
-        int Loop();
+        void Loop();
         /**
         * 退出引擎主循环
-        * @param code 退出代码，将会在<code>loop()</code>函数中返回
         * @remark 仅标记为退出，不会立即退出引擎
         */
-        void Exit(int code);
+        void Exit();
 
         /// @property RootNode
-        Node *GetRoot() const {
-            return RootNode;
-        }
+        Node *getRoot() const { return RootNode; }
 
         /// @property window
-        GLFWwindow *GetWindow() const { return window; }
+        GLFWwindow *getWindow() const { return window; }
+
+        /// @property ui
+        void setUI(UI *u) {
+            if (!ui->IsValid())
+                u->InitUI();
+            ui = u;
+        }
 
         /**
         * @brief 事件：窗口大小被改变
@@ -76,6 +80,10 @@ namespace CEngine {
          * @param 0 上一帧处理用时(ms)
         */
         Event<void(double)> Event_Process;
+        /**
+         *  @brief 事件：引擎退出时
+         */
+        Event<void()> Event_Destroy;
 
     private:
         Engine();
@@ -83,10 +91,10 @@ namespace CEngine {
         static Engine *Ins;
         /// @brief 窗口对象指针<code>GLFWwindow</code>
         GLFWwindow *window;
+        /// @brief UI
+        UI *ui;
         /// @brief 节点根目录
         Node *RootNode = Node::Create();
-        /// @brief 临时存储退出代码，用于<code>loop()</code>函数中返回
-        int ExitCode = 0;
 
         /**
         * 当引擎准备就绪时
@@ -97,6 +105,10 @@ namespace CEngine {
         * @param DeltaTime 上一帧处理用时(ms)
         */
         void Process(double DeltaTime);
+        /**
+        * 当引擎退出时
+        */
+        void Destroy();
     };
 
     const char *Engine::TAG = "引擎";
@@ -131,7 +143,7 @@ namespace CEngine {
         glfwSwapInterval(0); // 关闭垂直同步
         LogS(TAG) << "窗口创建成功.";
 
-        UI::InitUI(window);
+        setUI(new UI(window));
 
         if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
             LogE(TAG) << "GLAD加载失败!";
@@ -147,7 +159,7 @@ namespace CEngine {
         return true;
     }
 
-    int Engine::Loop() {
+    void Engine::Loop() {
         Ready();
         double last_clock = clock();
         while (!glfwWindowShouldClose(window)) {
@@ -157,13 +169,10 @@ namespace CEngine {
             glfwSwapBuffers(window);
             glfwPollEvents();
         }
-        glfwTerminate();
-        delete this;
-        return ExitCode;
+        Destroy();
     }
 
-    void Engine::Exit(const int code) {
-        ExitCode = code;
+    void Engine::Exit() {
         glfwSetWindowShouldClose(window, true);
     }
 
@@ -191,6 +200,16 @@ namespace CEngine {
             if (const auto ru3d = dynamic_cast<RenderUnit3D *>(node); ru3d != nullptr)
                 ru3d->Render();
         }
-        UI::ProcessUI();
+        ui->ProcessUI();
+    }
+
+    void Engine::Destroy() {
+        Event_Destroy.Invoke();
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        delete RootNode;
+        delete ui;
+        UI::Destroy();
+        delete this;
     }
 }

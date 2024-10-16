@@ -40,12 +40,7 @@ target_link_libraries(
 
 # 日志类
 add_library(Logger)
-target_sources(
-        Logger
-        PUBLIC
-        FILE_SET CXX_MODULES FILES
-        CEngine/Utils/Logger.ixx
-)
+target_sources(Logger PUBLIC FILE_SET CXX_MODULES FILES "CEngine/Utils/Logger.ixx")
 target_link_libraries(
         Logger
         std_modules
@@ -53,12 +48,7 @@ target_link_libraries(
 
 # 事件类
 add_library(Event)
-target_sources(
-        Event
-        PUBLIC
-        FILE_SET CXX_MODULES FILES
-        CEngine/Utils/Event.ixx
-)
+target_sources(Event PUBLIC FILE_SET CXX_MODULES FILES "CEngine/Utils/Event.ixx")
 target_link_libraries(
         Event
         std_modules
@@ -105,12 +95,7 @@ target_link_libraries(
 
 # 模型导入器
 add_library(ModelImporter)
-target_sources(
-        ModelImporter
-        PUBLIC
-        FILE_SET CXX_MODULES FILES
-        CEngine/Utils/ModelImporter.ixx
-)
+target_sources(ModelImporter PUBLIC FILE_SET CXX_MODULES FILES "CEngine/Utils/ModelImporter.ixx")
 target_link_libraries(
         ModelImporter
         Node
@@ -120,12 +105,7 @@ target_link_libraries(
 
 # 其他工具类
 add_library(Utils)
-target_sources(
-        Utils
-        PUBLIC
-        FILE_SET CXX_MODULES FILES
-        CEngine/Utils/Utils.ixx
-)
+target_sources(Utils PUBLIC FILE_SET CXX_MODULES FILES "CEngine/Utils/Utils.ixx")
 target_link_libraries(
         Utils
         std_modules
@@ -133,22 +113,31 @@ target_link_libraries(
 
 # UI
 add_library(UI)
-file(GLOB ui_sources "CEngine/UI/*.ixx")
-target_sources(UI PUBLIC FILE_SET CXX_MODULES FILES ${ui_sources})
+target_sources(UI PUBLIC FILE_SET CXX_MODULES FILES "CEngine/UI/UI.ixx")
 target_link_libraries(
         UI
+        ${glfw3}
         imgui
+        Base
+        Logger
+)
+
+#编辑器UI
+add_library(EditorUI)
+file(GLOB editor_ui_sources "CEngine/UI/EditorUI/*.ixx")
+target_sources(EditorUI PUBLIC FILE_SET CXX_MODULES FILES ${editor_ui_sources})
+target_link_libraries(
+        EditorUI
+        ${glfw3}
+        imgui
+        Engine
+        UI
         Logger
 )
 
 # 引擎主模块
 add_library(Engine)
-target_sources(
-        Engine
-        PUBLIC
-        FILE_SET CXX_MODULES FILES
-        CEngine/Engine.ixx
-)
+target_sources(Engine PUBLIC FILE_SET CXX_MODULES FILES "CEngine/Engine.ixx")
 target_link_libraries(
         Engine
         std_modules
