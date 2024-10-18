@@ -17,6 +17,8 @@ import CEngine.Node;
 namespace CEngine {
     export class SceneTreeBrowser {
     public:
+        Node *NodeSelected = nullptr;
+
         SceneTreeBrowser() = default;
 
         void RefreshCache() {
@@ -34,26 +36,26 @@ namespace CEngine {
                 }
                 std::string node_name;
                 if (node->GetChildCount() > 0) {
-                    node_name = std::format("{}> ({}) {}", std::string(tab, ' '), node->GetTypeName(), node->getName());
-                    if (NodeIsFolding[node])
+                    if (NodeIsFolding[node]) {
+                        node_name = std::format("{}- ({}) {}", std::string(tab, ' '), node->GetTypeName(), node->getName());
                         for (auto child: node->GetChildren())
                             stack.push({child, tab + 2});
+                    } else {
+                        node_name = std::format("{}+ ({}) {}", std::string(tab, ' '), node->GetTypeName(), node->getName());
+                    }
                 } else {
                     node_name = std::format("{}({}) {}", std::string(tab, ' '), node->GetTypeName(), node->getName());
                 }
                 if (ImGui::Selectable(node_name.c_str(), node == NodeSelected)) {
                     NodeSelected = node;
+                }
+                if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && ImGui::IsItemHovered()) {
                     NodeIsFolding[node] = !NodeIsFolding[node];
                 }
             }
         }
 
-        Node *getSelectedNode() const {
-            return NodeSelected;
-        };
-
     private:
-        Node *NodeSelected = nullptr;
         std::unordered_map<Node *, bool> NodeIsFolding;
     };
 }

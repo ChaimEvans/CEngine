@@ -79,7 +79,7 @@ namespace CEngine {
          * @param value 输出内容
          */
         template<typename T>
-        Logger &operator<<(T value);
+        Logger &operator<<(const T &value);
 
     private:
         LogLevel level;
@@ -147,7 +147,7 @@ namespace CEngine {
     }
 
     template<typename T>
-    Logger &Logger::operator<<(T value) {
+    Logger &Logger::operator<<(const T &value) {
         if (level == LogLevel::E)
             std::cerr << value;
 #ifndef DEBUG_MODE
@@ -160,33 +160,39 @@ namespace CEngine {
         return *this;
     }
 
-    template Logger &Logger::operator<<(int);
-    template Logger &Logger::operator<<(unsigned int);
-    template Logger &Logger::operator<<(float);
-    template Logger &Logger::operator<<(double);
-    template Logger &Logger::operator<<(long);
-    template Logger &Logger::operator<<(long long);
-    template Logger &Logger::operator<<(unsigned long);
-    template Logger &Logger::operator<<(unsigned long long);
-    template Logger &Logger::operator<<(char *);
-    template Logger &Logger::operator<<(const char *);
-    template Logger &Logger::operator<<(std::string);
-    template Logger &Logger::operator<<(bool);
+    // template Logger &Logger::operator<<(int);
+    // template Logger &Logger::operator<<(unsigned int);
+    // template Logger &Logger::operator<<(float);
+    // template Logger &Logger::operator<<(double);
+    // template Logger &Logger::operator<<(long);
+    // template Logger &Logger::operator<<(long long);
+    // template Logger &Logger::operator<<(unsigned long);
+    // template Logger &Logger::operator<<(unsigned long long);
+    // template Logger &Logger::operator<<(char *);
+    // template Logger &Logger::operator<<(const char *);
+    // template Logger &Logger::operator<<(std::string);
+    // template Logger &Logger::operator<<(bool);
 
     template<>
-    Logger &Logger::operator<<<glm::vec2>(const glm::vec2 value) {
+    Logger &Logger::operator<<<glm::vec2>(const glm::vec2 &value) {
         *this << "vec2( " << value.x << ", " << value.y << ")";
         return *this;
     }
 
     template<>
-    Logger &Logger::operator<<<glm::vec3>(const glm::vec3 value) {
+    Logger &Logger::operator<<<glm::vec3>(const glm::vec3 &value) {
         *this << "vec3( " << value.x << ", " << value.y << ", " << value.z << ")";
         return *this;
     }
 
     template<>
-    Logger &Logger::operator<<<glm::mat3>(const glm::mat3 value) {
+    Logger &Logger::operator<<<glm::vec4>(const glm::vec4 &value) {
+        *this << "vec4( " << value.x << ", " << value.y << ", " << value.z << ", " << value.w << ")";
+        return *this;
+    }
+
+    template<>
+    Logger &Logger::operator<<<glm::mat3>(const glm::mat3 &value) {
         *this << "glm::mat3\n";
         for (int i = 0; i < 3; ++i) {
             for (int j = 0; j < 3; ++j) {
@@ -198,7 +204,7 @@ namespace CEngine {
     }
 
     template<>
-    Logger &Logger::operator<<<glm::mat4>(const glm::mat4 value) {
+    Logger &Logger::operator<<<glm::mat4>(const glm::mat4 &value) {
         *this << "glm::mat4\n";
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {

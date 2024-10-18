@@ -103,9 +103,20 @@ target_link_libraries(
         ${assimp}
 )
 
+# Windows文件对话框
+#add_library(WindowsFileDialog)
+#target_sources(WindowsFileDialog PUBLIC FILE_SET CXX_MODULES FILES "CEngine/Utils/WindowsFileDialog.ixx")
+#target_link_libraries(
+#        WindowsFileDialog
+#        std_modules
+#)
+
 # 其他工具类
 add_library(Utils)
 target_sources(Utils PUBLIC FILE_SET CXX_MODULES FILES "CEngine/Utils/Utils.ixx")
+if (CMAKE_HOST_SYSTEM_NAME MATCHES "Windows")
+    target_sources(Utils PUBLIC FILE_SET CXX_MODULES FILES "CEngine/Utils/WindowsFileDialog.ixx")
+endif ()
 target_link_libraries(
         Utils
         std_modules
@@ -120,6 +131,8 @@ target_link_libraries(
         imgui
         Base
         Logger
+        ModelImporter
+        Render
 )
 
 #编辑器UI

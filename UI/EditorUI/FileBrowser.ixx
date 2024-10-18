@@ -11,6 +11,9 @@ module;
 export module CEngine.UI.EditorUI:FileBrowser;
 import std;
 import CEngine.Logger;
+import CEngine.ModelImporter;
+import CEngine.Engine;
+import CEngine.Render;
 
 namespace fs = std::filesystem;
 
@@ -23,11 +26,13 @@ namespace CEngine {
 
     // 文件节点结构体，用于缓存文件和目录信息
     struct FileNode {
-        std::string name; // 文件名或目录名
+        fs::path path; // path
+        std::string name;
         FileNodeType type; // 节点类型
         std::vector<FileNode> children; // 子节点列表（如果是目录，则存储子节点）
 
-        FileNode(const std::string &name, const FileNodeType type) : name(name), type(type) {
+        FileNode(const fs::path &path, const FileNodeType type) : path(path), type(type) {
+            name = path.filename().string();
         }
     };
 
@@ -68,16 +73,16 @@ namespace CEngine {
                 }
             } else if (node->type == FileNodeType::File) {
                 // 如果是文件
-                ImGui::Text("   %s", node->name.c_str());
+                ImGui::Selectable(std::format("   {}", node->name).c_str());
                 // 展示右键菜单
                 if (ImGui::BeginPopupContextItem(node->name.c_str())) {
-                    // 为当前项创建右键菜单
-                    if (ImGui::MenuItem("Open")) {
-                        // 处理打开操作
-                        // 可以根据node.type执行不同操作，比如打开文件或进入目录
-                    }
-                    if (ImGui::MenuItem("Properties")) {
-                        // 显示文件属性，比如大小、创建时间等
+                    for (auto &[name, shader]: ShaderProgram::All_Instances) {
+                        if (ImGui::MenuItem(std::format("Open With Shader \"{}\"", name).c_str())) {
+                            if (const auto model = ModelImporter::import_model(node->path.string().c_str(), shader); model->IsValid()) {
+                                Engine::GetIns()->getRoot()->RemoveAllChildren();
+                                Engine::GetIns()->getRoot()->AddChild(model);
+                            }
+                        }
                     }
                     ImGui::EndPopup();
                 }
@@ -105,13 +110,12 @@ namespace CEngine {
         void CacheDirectory(const fs::path &directory_path, FileNode &parent_node) {
             for (const auto &entry: fs::directory_iterator(directory_path)) {
                 const auto &path = entry.path();
-                std::string filename = path.filename().string();
                 if (entry.is_directory()) {
-                    FileNode dirNode(filename, FileNodeType::Directory);
+                    FileNode dirNode(path, FileNodeType::Directory);
                     CacheDirectory(path, dirNode); // 递归缓存子目录
                     parent_node.children.push_back(dirNode);
                 } else if (entry.is_regular_file()) {
-                    parent_node.children.push_back(FileNode(filename, FileNodeType::File));
+                    parent_node.children.push_back(FileNode(path, FileNodeType::File));
                 }
             }
         }

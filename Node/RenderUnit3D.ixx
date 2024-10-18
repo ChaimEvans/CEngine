@@ -21,6 +21,10 @@ namespace CEngine {
      */
     export class RenderUnit3D : public Node3D {
     public:
+        const char *GetTypeName() override {
+            return "RenderUnit3D";
+        }
+
         static RenderUnit3D *Create(Mesh *m, ShaderProgram *s) {
             return new RenderUnit3D(m, s);
         }
@@ -32,38 +36,32 @@ namespace CEngine {
             shader_program->Use();
             shader_program->SetUniform(0, GetWorldMatrix());
             if (!uniforms.empty())
-                for (auto [name, values]: uniforms) {
-                    shader_program->SetUniform_p1(name.c_str(), values);
+                for (auto [name, value]: uniforms) {
+                    shader_program->SetShaderUniformVar(name.c_str(), value);
                 }
             mesh->Render();
-        }
-
-        const char *GetTypeName() override {
-            return "RenderUnit3D";
         }
 
         /**
          * 设置着色器参数
          * @param name 变量名称
-         * @param args 值
+         * @param value 值
          */
-        template<typename... Args>
-        void SetShaderUniform(const std::string &name, Args &... args) {
-            std::vector<ShaderUniformVar> values = {ShaderUniformVar(args)...};
-            if (uniforms.contains(name))
-                uniforms[name] = values;
-            uniforms.emplace(name, std::move(values));
+        template<typename T>
+        void SetShaderUniform(const std::string &name, T &&value) {
+            LogI(TAG) << "设置Shader Uniform: " << name << " = " << value;
+            if (uniforms.contains(name)) uniforms.erase(name);
+            uniforms.emplace(name, ShaderUniformVar(value));
         }
 
         /// @property mesh
-        Mesh *getMesh() const {
-            return mesh;
-        }
+        Mesh *getMesh() const { return mesh; }
 
         /// @property shader_program
-        ShaderProgram *getShaderProgram() const {
-            return shader_program;
-        }
+        ShaderProgram *getShaderProgram() const { return shader_program; }
+
+        /// @property uniforms
+        std::unordered_map<std::string, ShaderUniformVar> &getUniforms() { return uniforms; }
 
     protected:
         RenderUnit3D(Mesh *m, ShaderProgram *s) : mesh(m), shader_program(s) {
@@ -71,6 +69,6 @@ namespace CEngine {
 
         Mesh *mesh;
         ShaderProgram *shader_program;
-        std::unordered_map<std::string, std::vector<ShaderUniformVar> > uniforms;
+        std::unordered_map<std::string, ShaderUniformVar> uniforms;
     };
 }

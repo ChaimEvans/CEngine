@@ -7,7 +7,6 @@
  */
 
 module;
-#include <glm/glm.hpp>
 export module CEngine.Base;
 export import :Object;
 import std;

@@ -8,6 +8,8 @@
 
 module;
 #include <glad/glad.h>
+
+#include <utility>
 #include "md5.hpp"
 export module CEngine.Render:Texture;
 import std;
@@ -20,9 +22,14 @@ namespace CEngine {
     export class Texture final : public Object {
     public:
         static const char *TAG;
-        static std::unordered_map<std::string, std::shared_ptr<Texture> > All_Instances;
+        static std::unordered_map<std::string, Texture *> All_Instances;
 
-        static std::shared_ptr<Texture> Create(const ImageBuffer &img) {
+        /// 重置纹理槽，需要在每次DrawCall后调用
+        static void ResetTextureSlot() {
+            CurrentTextureSlot = 0;
+        }
+
+        static Texture *Create(const ImageBuffer &img) {
             // 计算MD5
             const auto _md5 = md5::digestString(img.GetBuffer(), img.GetHeight() * img.GetWidth());
             if (All_Instances.contains(_md5)) return All_Instances[_md5];
@@ -60,12 +67,12 @@ namespace CEngine {
             glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, static_cast<GLsizei>(img.GetWidth()), static_cast<GLsizei>(img.GetHeight()), 0, dataFormat,
                          GL_UNSIGNED_BYTE, img.GetBuffer());
             glBindTexture(GL_TEXTURE_2D, 0);
-            auto tex = std::make_shared<Texture>(id, _md5, internalFormat, dataFormat);
+            auto tex = new Texture(id, _md5, internalFormat, dataFormat, img.GetWidth(), img.GetHeight());
             All_Instances.emplace(_md5, tex);
             return tex;
         }
 
-        static std::shared_ptr<Texture> FromFile(const char *img_path) {
+        static Texture *FromFile(const char *img_path) {
             if (!Utils::FileExists(img_path)) {
                 LogE(TAG) << "文件不存在: " << img_path;
                 return nullptr;
@@ -74,8 +81,8 @@ namespace CEngine {
             return Create(img);
         }
 
-        Texture(const unsigned int id, const std::string &_md5, const int internal_format, const int data_format) : TextureID(id),
-            InternalFormat(internal_format), DataFormat(data_format), Md5(_md5) {
+        Texture(const unsigned int id, std::string _md5, const int internal_format, const int data_format, const unsigned int width, const unsigned int height)
+            : TextureID(id), InternalFormat(internal_format), DataFormat(data_format), Width(width), Height(height), Md5(std::move(_md5)) {
         }
 
         Texture(const Texture &) = delete;
@@ -85,41 +92,52 @@ namespace CEngine {
 
         ~Texture() override {
             glDeleteTextures(1, &TextureID);
-            /// todo ↓这里↓会保存，不知道为啥
-            //All_Instances.erase(Md5);
+            All_Instances.erase(Md5);
         }
 
-        void Bind() const {
+        int Use() const {
+            if (CurrentTextureSlot > 15) {
+                LogE(TAG) << "当前纹理槽已满！";
+                return -1;
+            }
+            glActiveTexture(GL_TEXTURE0 + CurrentTextureSlot);
             glBindTexture(GL_TEXTURE_2D, TextureID);
+            return CurrentTextureSlot++;
+        }
+
+        static void UnUse() {
+            glBindTexture(GL_TEXTURE_2D, 0);
         }
 
         /// @property TextureID
-        unsigned int getTextureID() const {
-            return TextureID;
-        }
+        unsigned int getTextureID() const { return TextureID; }
 
         /// @property InternalFormat
-        int getInternalFormat() const {
-            return InternalFormat;
-        }
+        int getInternalFormat() const { return InternalFormat; }
 
         /// @property DataFormat
-        int getDataFormat() const {
-            return DataFormat;
-        }
+        int getDataFormat() const { return DataFormat; }
 
         /// @property Md5
-        std::string getMd5() const {
-            return Md5;
-        }
+        std::string getMd5() const { return Md5; }
+
+        /// @property Width
+        unsigned int getWidth() const { return Width; }
+
+        /// @property Height
+        unsigned int getHeight() const { return Height; }
 
     private:
+        /// 记录纹理槽，需要在每次DrawCall后重置为零
+        static int CurrentTextureSlot;
         unsigned int TextureID = 0;
         int InternalFormat = GL_RGBA8;
         int DataFormat = GL_RGBA;
+        unsigned int Width, Height;
         std::string Md5;
     };
 
     const char *Texture::TAG = "Texture";
-    std::unordered_map<std::string, std::shared_ptr<Texture> > Texture::All_Instances;
+    std::unordered_map<std::string, Texture *> Texture::All_Instances;
+    int Texture::CurrentTextureSlot = 0;
 }

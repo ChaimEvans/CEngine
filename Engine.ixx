@@ -46,13 +46,17 @@ namespace CEngine {
         */
         void Loop();
         /**
+         * 每绘制一次调用(即Mesh.Render函数后)
+         */
+        void DrawCallEnd();
+        /**
         * 退出引擎主循环
         * @remark 仅标记为退出，不会立即退出引擎
         */
-        void Exit();
+        void Exit() const;
 
         /// @property RootNode
-        Node *getRoot() const { return RootNode; }
+        Node3D *getRoot() const { return RootNode; }
 
         /// @property window
         GLFWwindow *getWindow() const { return window; }
@@ -94,7 +98,7 @@ namespace CEngine {
         /// @brief UI
         UI *ui;
         /// @brief 节点根目录
-        Node *RootNode = Node::Create();
+        Node3D *RootNode = Node3D::Create();
 
         /**
         * 当引擎准备就绪时
@@ -120,8 +124,6 @@ namespace CEngine {
         glfwInit();
         glfwWindowHint(GLFW_VERSION_MAJOR, 4);
         glfwWindowHint(GLFW_VERSION_MINOR, 6);
-
-        //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         RootNode->setName("RootNode");
     }
 
@@ -172,7 +174,17 @@ namespace CEngine {
         Destroy();
     }
 
-    void Engine::Exit() {
+    void Engine::DrawCallEnd() {
+        Texture::ResetTextureSlot();
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindVertexArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        glUseProgram(0);
+    }
+
+    void Engine::Exit() const {
         glfwSetWindowShouldClose(window, true);
     }
 
@@ -186,9 +198,10 @@ namespace CEngine {
     }
 
     void Engine::Process(const double DeltaTime) {
-        Event_Process.Invoke(DeltaTime);
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_DEPTH_BUFFER_BIT);
+        Texture::ResetTextureSlot();
         std::stack<Node *> stack;
         stack.push(RootNode);
         while (!stack.empty()) {
@@ -197,8 +210,10 @@ namespace CEngine {
             if (node->GetChildCount() > 0)
                 for (const auto child: node->GetChildren())
                     stack.push(child);
-            if (const auto ru3d = dynamic_cast<RenderUnit3D *>(node); ru3d != nullptr)
+            if (const auto ru3d = dynamic_cast<RenderUnit3D *>(node); ru3d != nullptr) {
                 ru3d->Render();
+                DrawCallEnd();
+            }
         }
         ui->ProcessUI();
     }

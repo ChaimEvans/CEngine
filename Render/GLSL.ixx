@@ -11,12 +11,16 @@ module;
 
 #include <utility>
 export module CEngine.Render:GLSL;
+import :ShaderUniformVar;
 import std;
 import CEngine.Base;
 import CEngine.Logger;
 import CEngine.Utils;
 
 namespace CEngine {
+    const std::regex ShaderUniformPattern_1(R"(^uniform\s(\w+?)\s(\w+))");
+    const std::regex ShaderUniformPattern_2(R"(layout.*?uniform\s(\w+?)\s(\w+))");
+
     /**
      * @brief GLSL文件类\n
      * 用于读取GLSL文件并进行编译\n
@@ -57,7 +61,7 @@ namespace CEngine {
                 LogE(TAG) << "着色器编译错误: " << name << "\nInfoLog: " << info_log;
                 return nullptr;
             }
-            return std::make_shared<GLSL>(id, name);
+            return std::make_shared<GLSL>(id, name, GetShaderUniformsFromSource(glsl_source));
         }
 
         /**
@@ -70,7 +74,7 @@ namespace CEngine {
                 LogE(TAG) << "文件不存在: " << file_path;
                 return nullptr;
             }
-            LogD(TAG) << "正在编译着色器: " << file_path;
+            LogI(TAG) << "正在编译着色器: " << file_path;
             std::ifstream file;
             file.exceptions(std::ifstream::badbit | std::ifstream::failbit);
             std::string glsl_source;
@@ -87,7 +91,24 @@ namespace CEngine {
             return FromSource(glsl_source, shader_type, file_path);
         }
 
-        explicit GLSL(const unsigned int id, std::string name) : shader_id(id), Name(std::move(name)) {
+        static std::unordered_set<std::pair<ShaderUniformVar::Type, std::string> > GetShaderUniformsFromSource(const std::string &glsl_source) {
+            std::unordered_set<std::pair<ShaderUniformVar::Type, std::string> > uniforms;
+            std::smatch match;
+            auto it = glsl_source.cbegin();
+            while (std::regex_search(it, glsl_source.cend(), match, ShaderUniformPattern_1)) {
+                it = match[0].second;
+                uniforms.insert({ShaderUniformVar::StringToType(match[1]), match[2]});
+            }
+            it = glsl_source.cbegin();
+            while (std::regex_search(it, glsl_source.cend(), match, ShaderUniformPattern_2)) {
+                it = match[0].second;
+                uniforms.insert({ShaderUniformVar::StringToType(match[1]), match[2]});
+            }
+            return std::move(uniforms);
+        }
+
+        GLSL(const unsigned int id, std::string name, std::unordered_set<std::pair<ShaderUniformVar::Type, std::string> > &&uniforms)
+            : shader_id(id), UniformsList(std::move(uniforms)), Name(std::move(name)) {
         }
 
         GLSL(const GLSL &) = delete;
@@ -99,11 +120,17 @@ namespace CEngine {
             glDeleteShader(shader_id);
         }
 
-        /// @brief 属性: shader_id
+        /// @property shader_id
         unsigned int getShaderID() const {
             return shader_id;
         }
 
+        /// @property UniformsList
+        std::unordered_set<std::pair<ShaderUniformVar::Type, std::string> > &getUniformsList() {
+            return UniformsList;
+        }
+
+        /// @property Name
         std::string getName() const {
             return Name;
         }
@@ -111,6 +138,8 @@ namespace CEngine {
     private:
         /// @brief 着色器ID
         unsigned int shader_id = 0;
+        /// @brief GLSL中Uniform列表
+        std::unordered_set<std::pair<ShaderUniformVar::Type, std::string> > UniformsList;
         /// 仅用作为异常输出标识
         std::string Name;
     };

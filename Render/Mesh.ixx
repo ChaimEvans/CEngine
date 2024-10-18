@@ -10,6 +10,7 @@ module;
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 export module CEngine.Render:Mesh;
+import :Texture;
 import std;
 import CEngine.Base;
 import CEngine.Logger;
@@ -73,7 +74,7 @@ namespace CEngine {
         */
         void Render() const {
             glBindVertexArray(VAO);
-            glDrawElements(GL_TRIANGLES, indices_size, GL_UNSIGNED_INT, nullptr);
+            glDrawElements(GL_TRIANGLES, static_cast<int>(indices_size), GL_UNSIGNED_INT, nullptr);
         }
 
         /// 不重要

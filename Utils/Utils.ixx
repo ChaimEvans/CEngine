@@ -8,6 +8,9 @@ module;
 #include <glm/gtc/quaternion.hpp>
 export module CEngine.Utils;
 import std.compat;
+#ifdef _WIN32
+import CEngine.Utils.WindowsFileDialog;
+#endif
 
 namespace CEngine::Utils {
     /**
@@ -122,5 +125,48 @@ namespace CEngine::Utils {
 
     export glm::vec3 Matrix4GetRotationAngles(const glm::mat4 &matrix) {
         return glm::degrees(Matrix4GetRotationEulerAngles(matrix));
+    }
+}
+
+namespace CEngine::Utils {
+    /**
+     * 打开文件对话框选择文件打开
+     * @remark 取消返回空
+     * @param file_filter 文件名过滤器，如<code>{ {L"Json", L"*.json"}, {L"TXT", L"*.txt"}}</code>
+     * @return 返回文件路径
+     */
+    export std::filesystem::path ShowOpenFileDialog(const std::vector<std::pair<const wchar_t *, const wchar_t *> > &file_filter = {}) {
+#ifdef _WIN32
+        return WindowsFileDialog::OpenFile(file_filter);
+#else
+        return "";
+#endif
+    }
+
+    /**
+     * 打开文件对话框选择文件保存
+     * @remark 取消返回空
+     * @param file_filter 文件名过滤器，如<code>{ {L"Json", L"*.json"}, {L"TXT", L"*.txt"}}</code>
+     * @return 返回文件路径
+     */
+    export std::filesystem::path ShowSaveFileDialog(const std::vector<std::pair<const wchar_t *, const wchar_t *> > &file_filter = {}) {
+#ifdef _WIN32
+        return WindowsFileDialog::SaveFile(file_filter);
+#else
+        return "";
+#endif
+    }
+
+    /**
+     * 选择文件夹
+     * @remark 取消返回空
+     * @return 文件夹路径
+     */
+    export std::filesystem::path ShowSelectFolderDialog() {
+#ifdef _WIN32
+        return WindowsFileDialog::SelectFolder();
+#else
+        return "";
+#endif
     }
 }

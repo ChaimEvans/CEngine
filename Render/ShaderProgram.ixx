@@ -12,56 +12,13 @@ module;
 #include <glm/gtc/type_ptr.hpp>
 export module CEngine.Render:ShaderProgram;
 import :GLSL;
+import :ShaderUniformVar;
 import std;
 import CEngine.Base;
 import CEngine.Logger;
 import CEngine.Utils;
 
 namespace CEngine {
-    export class ShaderUniformVar {
-    public:
-        using shader_uniforms_var = std::variant<int, unsigned, float, double, glm::mat3, glm::mat4>;
-
-        enum class Type : char {
-            INT,
-            UINT,
-            FLOAT,
-            DOUBLE,
-            MAT3,
-            MAT4
-        };
-
-        template<typename T>
-        explicit ShaderUniformVar(const T &value) {
-            Value = value;
-            if constexpr (std::is_same_v<T, int>)
-                type = Type::INT;
-            else if constexpr (std::is_same_v<T, unsigned int>)
-                type = Type::UINT;
-            else if constexpr (std::is_same_v<T, float>)
-                type = Type::FLOAT;
-            else if constexpr (std::is_same_v<T, double>)
-                type = Type::DOUBLE;
-            else if constexpr (std::is_same_v<T, glm::mat3>)
-                type = Type::MAT3;
-            else if constexpr (std::is_same_v<T, glm::mat4>)
-                type = Type::MAT4;
-            else static_assert(false, "ShaderUniformVars: 未适配类型");
-        }
-
-        Type GetType() const {
-            return type;
-        }
-
-        shader_uniforms_var &GetValue() {
-            return Value;
-        }
-
-    private:
-        Type type;
-        shader_uniforms_var Value;
-    };
-
     export class ShaderProgram final : public Object {
     public:
         const static char *TAG;
@@ -78,6 +35,7 @@ namespace CEngine {
             All_Instances.erase(Name);
         }
 
+        /// @file ShaderProgram_Presets.ixx
         static void LoadPresets();
 
         /**
@@ -102,8 +60,9 @@ namespace CEngine {
          * @param shader GLSL对象
          * @return <code>self</code>可链式调用
          */
-        ShaderProgram *AddShader(const GLSL *shader) {
+        ShaderProgram *AddShader(GLSL *shader) {
             glsl_list.push_back(shader->getName());
+            UniformsList.insert(shader->getUniformsList().begin(), shader->getUniformsList().end());
             glAttachShader(shader_program_id, shader->getShaderID());
             return this;
         }
@@ -166,6 +125,12 @@ namespace CEngine {
                 glUniform1d(location, value);
             else if constexpr (std::is_same_v<T, double[]>)
                 glUniform1dv(location, sizeof(value) / sizeof(T), &value[0]);
+            else if constexpr (std::is_same_v<T, glm::vec2>)
+                SetUniform(location, value.x, value.y);
+            else if constexpr (std::is_same_v<T, glm::vec3>)
+                SetUniform(location, value.x, value.y, value.z);
+            else if constexpr (std::is_same_v<T, glm::vec4>)
+                SetUniform(location, value.x, value.y, value.z, value.w);
             else if constexpr (std::is_same_v<T, glm::mat3>)
                 glUniformMatrix3fv(location, 1, false, reinterpret_cast<const GLfloat *>(glm::value_ptr(value)));
             else if constexpr (std::is_same_v<T, glm::mat4>) {
@@ -230,42 +195,38 @@ namespace CEngine {
             else static_assert(false, "SetUniform未实现该类型");
         }
 
-        void SetUniform_p1(const char *name, std::vector<ShaderUniformVar> &uniforms) {
-            if (const auto type = uniforms[0].GetType(); type == ShaderUniformVar::Type::INT)
-                SetUniform_p2<int>(name, uniforms);
+        void SetShaderUniformVar(const char *name, ShaderUniformVar &uniform) {
+            if (const auto type = uniform.GetType(); type == ShaderUniformVar::Type::INT)
+                SetUniform(name, uniform.GetValue<int>());
             else if (type == ShaderUniformVar::Type::UINT)
-                SetUniform_p2<unsigned int>(name, uniforms);
+                SetUniform(name, uniform.GetValue<unsigned int>());
             else if (type == ShaderUniformVar::Type::FLOAT)
-                SetUniform_p2<float>(name, uniforms);
+                SetUniform(name, uniform.GetValue<float>());
             else if (type == ShaderUniformVar::Type::DOUBLE)
-                SetUniform_p2<double>(name, uniforms);
+                SetUniform(name, uniform.GetValue<double>());
+            else if (type == ShaderUniformVar::Type::VEC2)
+                SetUniform(name, uniform.GetValue<glm::vec2>());
+            else if (type == ShaderUniformVar::Type::VEC3)
+                SetUniform(name, uniform.GetValue<glm::vec3>());
+            else if (type == ShaderUniformVar::Type::VEC4)
+                SetUniform(name, uniform.GetValue<glm::vec4>());
             else if (type == ShaderUniformVar::Type::MAT3)
-                SetUniform(name, std::get<glm::mat3>(uniforms[0].GetValue()));
+                SetUniform(name, uniform.GetValue<glm::mat3>());
             else if (type == ShaderUniformVar::Type::MAT4)
-                SetUniform(name, std::get<glm::mat4>(uniforms[0].GetValue()));
+                SetUniform(name, uniform.GetValue<glm::mat4>());
+            else if (type == ShaderUniformVar::Type::SAMPLER2D) {
+                if (const auto tex = uniform.GetValue<Texture *>(); tex != nullptr)
+                    SetUniform(name, tex->Use());
+            }
         }
 
-        template<typename T>
-        void SetUniform_p2(const char *name, std::vector<ShaderUniformVar> &uniforms) {
-            std::vector<T> values;
-            for (auto &uniform: uniforms) {
-                values.push_back(std::get<T>(uniform.GetValue()));
-            }
-            auto count = values.size();
-            if (count == 1)
-                SetUniform(name, values[0]);
-            else if (count == 2)
-                SetUniform(name, values[0], values[1]);
-            else if (count == 3)
-                SetUniform(name, values[0], values[1], values[2]);
-            else if (count == 4)
-                SetUniform(name, values[0], values[1], values[2], values[3]);
-        }
+        std::string getName() const { return Name; }
 
         /// @property shader_program_id
-        unsigned int getShaderProgramID() const {
-            return shader_program_id;
-        }
+        unsigned int getShaderProgramID() const { return shader_program_id; }
+
+        /// @property UniformsList
+        std::unordered_set<std::pair<ShaderUniformVar::Type, std::string> > &getUniformsList() { return UniformsList; }
 
     private:
         ShaderProgram() : ShaderProgram(Utils::GenerateUUID()) {
@@ -280,6 +241,8 @@ namespace CEngine {
         unsigned int shader_program_id = 0;
         /// @brief 用于通过All_Instances调用的key
         std::string Name;
+        /// @brief UniformsList
+        std::unordered_set<std::pair<ShaderUniformVar::Type, std::string> > UniformsList;
         /// @brief 该着色器程序所链接的GLSL，仅用于调试输出
         std::vector<std::string> glsl_list;
     };

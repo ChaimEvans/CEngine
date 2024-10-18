@@ -48,12 +48,16 @@ namespace CEngine::ModelImporter {
                 for (unsigned int k = 0; k < face.mNumIndices; k++)
                     indices.push_back(face.mIndices[k]);
             }
-            LogD(TAG) << "mMaterialIndex: " << mesh->mMaterialIndex;
             const auto m = Mesh::Create(vertices, indices);
             m->Name = mesh->mName.data;
             LogS(TAG) << "导入网格: " << m->Name;
-            const auto ru = PBR3D::Create(m, Material::ProcessAssimpMaterial(scene->mMaterials[mesh->mMaterialIndex], model_path));
-            n3d->AddChild(ru);
+            if (shader_program == nullptr || shader_program == ShaderProgram::All_Instances["Base"]) {
+                const auto ru3d = RenderUnit3D::Create(m, ShaderProgram::All_Instances["Base"]);
+                n3d->AddChild(ru3d);
+            } else {
+                const auto pbr3d = PBR3D::Create(m, Material::ProcessAssimpMaterial(scene->mMaterials[mesh->mMaterialIndex], model_path), shader_program);
+                n3d->AddChild(pbr3d);
+            }
         }
         for (unsigned int i = 0; i < node->mNumChildren; i++) {
             process_node(node->mChildren[i], scene, n3d, shader_program, model_path);
@@ -70,14 +74,13 @@ namespace CEngine::ModelImporter {
         if (Utils::c_str_ends_with(file_path, ".fbx")) transform_scale = 0.1f;
         Assimp::Importer importer;
         const aiScene *scene = importer.ReadFile(file_path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
-        if (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+        if (scene == nullptr || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
             LogE(TAG) << importer.GetErrorString();
             return nullptr;
         }
         const auto node = Node3D::Create();
         node->setName(scene->mName.data);
-        process_node(scene->mRootNode, scene, node, shader_program == nullptr ? ShaderProgram::All_Instances["PBR"] : shader_program, file_path,
-                     transform_scale);
+        process_node(scene->mRootNode, scene, node, shader_program, file_path, transform_scale);
         return node;
     }
 }

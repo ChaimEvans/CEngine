@@ -67,13 +67,10 @@ namespace CEngine {
         void AddChild(Node *node) {
             // 判断节点是否有原父级
             if (const auto raw_parent = node->Parent; raw_parent != nullptr) {
-                raw_parent->PopChild(node->Name);
-            }
-            // 判断Name在新父级中是否唯一
-            for (int i = 0; Children.contains(node->Name); ++i) {
-                node->Name += std::format(".{}", i);
+                raw_parent->PopChild(node->Name); // 从原父级中删除
             }
             node->Parent = this;
+            node->setName(node->Name); // 原地设置，让setName自动判断是否有重复名
             Children.emplace(node->Name, node);
         }
 
@@ -83,6 +80,13 @@ namespace CEngine {
          */
         void RemoveChild(const std::string &name) {
             delete PopChild(name);
+        }
+
+        void RemoveAllChildren() {
+            for (const auto child: Children | std::views::values) {
+                delete child;
+            }
+            Children.clear();
         }
 
         /**
@@ -130,35 +134,34 @@ namespace CEngine {
             return Children.contains(name);
         }
 
+        /// @file Export.ixx
         void PrintChildrenTree(Logger::LogLevel ll = Logger::LogLevel::D);
 
         /// @property Name
-        std::string getName() const {
-            return Name;
-        }
+        std::string getName() const { return Name; }
 
         /// @property Name
         void setName(const std::string &name) {
-            const std::string _name = name.empty() ? Utils::GenerateUUID() : name;
+            const std::string new_name = name.empty() ? Utils::GenerateUUID() : name;
             if (Parent != nullptr) {
                 // 判断所在层级中Name是否唯一
-                std::string new_name = _name;
-                for (int i = 0; Parent->HasChild(new_name); ++i) {
-                    new_name = _name + std::format(".{}", i);
+                auto desire_name = new_name;
+                for (int i = 0; Parent->HasChild(desire_name); ++i) {
+                    desire_name = std::format("{}.{}", new_name, i);
                 }
-                auto s = Parent->Children.extract(Name); // 弹出改key
-                s.key() = new_name;
-                Parent->Children.insert(std::move(s));
-                Name = new_name;
+                if (Parent->Children.contains(Name)) {
+                    auto s = Parent->Children.extract(Name); // 弹出改key
+                    s.key() = desire_name;
+                    Parent->Children.insert(std::move(s));
+                }
+                Name = desire_name;
             } else {
-                Name = _name;
+                Name = new_name;
             }
         }
 
         /// @property Parent
-        Node *getParent() const {
-            return Parent;
-        }
+        Node *getParent() const { return Parent; }
 
     protected:
         Node() {
