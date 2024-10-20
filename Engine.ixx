@@ -7,9 +7,8 @@
  */
 
 module;
-#include <ctime>
-#include "glad/glad.h"
-#include "glfw3.h"
+#include <glad/glad.h>
+#include <glfw3.h>
 export module CEngine.Engine;
 import std;
 import CEngine.Base;
@@ -106,9 +105,9 @@ namespace CEngine {
         void Ready();
         /**
         * 引擎帧处理函数
-        * @param DeltaTime 上一帧处理用时(ms)
+        * @return 处理用时(ms)
         */
-        void Process(double DeltaTime);
+        double Process();
         /**
         * 当引擎退出时
         */
@@ -163,11 +162,8 @@ namespace CEngine {
 
     void Engine::Loop() {
         Ready();
-        double last_clock = clock();
         while (!glfwWindowShouldClose(window)) {
-            const double now_clock = clock();
-            Process((now_clock - last_clock) / CLOCKS_PER_SEC * 1000);
-            last_clock = now_clock;
+            Event_Process.Invoke(Process());
             glfwSwapBuffers(window);
             glfwPollEvents();
         }
@@ -197,7 +193,8 @@ namespace CEngine {
         Event_Ready.Invoke();
     }
 
-    void Engine::Process(const double DeltaTime) {
+    double Engine::Process() {
+        const double time = glfwGetTime();
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         glClear(GL_DEPTH_BUFFER_BIT);
@@ -216,6 +213,7 @@ namespace CEngine {
             }
         }
         ui->ProcessUI();
+        return (glfwGetTime() - time) * 1000.0;
     }
 
     void Engine::Destroy() {

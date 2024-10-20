@@ -28,6 +28,50 @@ namespace CEngine {
             return "Node3D";
         }
 
+        Node3D &SetPosition(const glm::vec3 p, const bool updateM = true) {
+            Position = p;
+            if (updateM) UpdateModelMatrix();
+            return *this;
+        }
+
+        Node3D &SetRotation(const EulerRotation e, const bool updateM = true) {
+            Rotation = e;
+            if (updateM) UpdateModelMatrix();
+            return *this;
+        }
+
+        Node3D &SetScale(const glm::vec3 s, const bool updateM = true) {
+            Scale = s;
+            if (updateM) UpdateModelMatrix();
+            return *this;
+        }
+
+        Node3D &UpdateModelMatrix() {
+            // 平移矩阵 * 旋转矩阵 * 缩放矩阵
+            ModelMatrix = glm::translate(glm::mat4(1.0f), Position) * glm::mat4_cast(Rotation.ToOrientation()) * glm::scale(glm::mat4(1.0f), Scale);
+            return *this;
+        }
+
+        void SetModelMatrix(const glm::mat4 &matrix) {
+            Position = glm::vec3(GetWorldMatrix()[3]);
+            Scale = {
+                glm::length(glm::vec3(matrix[0])),
+                glm::length(glm::vec3(matrix[1])),
+                glm::length(glm::vec3(matrix[2])),
+            };
+            glm::mat4 rotationM = matrix;
+            rotationM[0] /= Scale.x;
+            rotationM[1] /= Scale.y;
+            rotationM[2] /= Scale.z;
+            const glm::vec3 rotationEuler = glm::eulerAngles(glm::quat_cast(rotationM));
+            Rotation = {rotationEuler.y, rotationEuler.x, rotationEuler.z};
+            UpdateModelMatrix();
+        }
+
+        glm::vec3 GetPosition() const { return Position; }
+        EulerRotation GetRotation() const { return Rotation; }
+        glm::vec3 GetScale() const { return Scale; }
+        glm::mat4 GetModelMatrix() const { return ModelMatrix; }
 
         /**
          * 获取世界变换矩阵
@@ -45,76 +89,57 @@ namespace CEngine {
             return matrix;
         }
 
-        virtual void SetWorldMatrix(const glm::mat4 &m) {
-            ModelMatrix *= m * glm::inverse(GetWorldMatrix());
-        }
-
-        /// @property ModelMatrix
-        virtual void SetModelMatrix(const glm::mat4 &m) {
-            ModelMatrix = m;
-        }
-
-        /// @property ModelMatrix
-        glm::mat4 GetModelMatrix() const {
-            return ModelMatrix;
-        }
-
-        /**
-         * 获取局部位置
-         */
-        glm::vec3 GetPosition() const {
-            return Utils::Matrix4GetPosition(ModelMatrix);
-        }
-
-        void SetPosition(const glm::vec3 &pos) {
-            ModelMatrix = glm::translate(ModelMatrix, pos - GetPosition());
-        }
-
-        /**
-         * 获取世界位置
-         */
         glm::vec3 GetWorldPosition() const {
-            return Utils::Matrix4GetPosition(GetWorldMatrix());
+            return glm::vec3(GetWorldMatrix()[3]);
         }
 
-        glm::vec3 GetScale() const {
-            return Utils::Matrix4GetScale(ModelMatrix);
-        }
-
-        void SetScale(const glm::vec3 &s) {
-            ModelMatrix = glm::scale(ModelMatrix, glm::vec3(1.0f) + s - GetScale());
+        EulerRotation GetWorldRotation() const {
+            glm::mat4 matrix = GetWorldMatrix();
+            const glm::vec3 scale = {
+                glm::length(glm::vec3(matrix[0])),
+                glm::length(glm::vec3(matrix[1])),
+                glm::length(glm::vec3(matrix[2])),
+            };
+            glm::mat4 rotationM = matrix;
+            rotationM[0] /= scale.x;
+            rotationM[1] /= scale.y;
+            rotationM[2] /= scale.z;
+            const glm::vec3 rotationEuler = glm::eulerAngles(glm::quat_cast(rotationM));
+            return {rotationEuler.y, rotationEuler.x, rotationEuler.z};
         }
 
         glm::vec3 GetWorldScale() const {
-            return Utils::Matrix4GetScale(GetWorldMatrix());
+            glm::mat4 matrix = GetWorldMatrix();
+            return {
+                glm::length(glm::vec3(matrix[0])),
+                glm::length(glm::vec3(matrix[1])),
+                glm::length(glm::vec3(matrix[2])),
+            };
         }
 
-        glm::quat GetRotation() const {
-            return Utils::Matrix4GetRotationAngles(ModelMatrix);
+        glm::vec3 GetForward(const bool world = false) const {
+            if (world)
+                return glm::normalize(GetWorldRotation().ToOrientation() * glm::vec3(0.0f, 0.0f, 1.0f));
+            return glm::normalize(Rotation.ToOrientation() * glm::vec3(0.0f, 0.0f, 1.0f));
         }
 
-        void SetRotation(const glm::vec3 &r) {
-            const glm::vec3 raw_r = GetRotationAngles();
-            ModelMatrix = glm::rotate(ModelMatrix, glm::radians(r.x - raw_r.x), glm::vec3(1.0f, 0.0f, 0.0f));
-            ModelMatrix = glm::rotate(ModelMatrix, glm::radians(r.y - raw_r.y), glm::vec3(0.0f, 1.0f, 0.0f));
-            ModelMatrix = glm::rotate(ModelMatrix, glm::radians(r.z - raw_r.z), glm::vec3(0.0f, 0.0f, 1.0f));
+        glm::vec3 GetRight(const bool world = false) const {
+            return glm::normalize(glm::cross(GetForward(world), glm::vec3(0.0f, 0.0f, 1.0f)));
         }
 
-        glm::quat GetWorldRotation() const {
-            return Utils::Matrix4GetRotationAngles(GetWorldMatrix());
-        }
-
-        glm::vec3 GetRotationAngles() const {
-            return Utils::Matrix4GetRotationAngles(ModelMatrix);
-        }
-
-        glm::vec3 GetWorldRotationAngles() const {
-            return Utils::Matrix4GetRotationAngles(GetWorldMatrix());
+        glm::vec3 GetUp(const bool world = false) const {
+            return glm::normalize(glm::cross(GetRight(world), GetForward(world)));
         }
 
     protected:
         Node3D() = default;
-        /// @brief 局部变换矩阵
+        /// 局部变换矩阵
         glm::mat4 ModelMatrix = glm::mat4(1.0f);
+        /// 坐标
+        glm::vec3 Position = glm::vec3(0.0f);
+        /// 旋转值
+        EulerRotation Rotation = EulerRotation(0.0f, 0.0f, 0.0f);
+        /// 缩放值
+        glm::vec3 Scale = glm::vec3(1.0f);
     };
 }

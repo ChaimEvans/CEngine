@@ -6,6 +6,7 @@ export import :Mesh;
 export import :Material;
 export import :Texture;
 export import :ShaderUniformVar;
+export import :Camera;
 
 namespace CEngine {
     // @formatter:off

@@ -97,36 +97,36 @@ namespace CEngine::Utils {
     }
 }
 
-namespace CEngine::Utils {
-    export glm::vec3 Matrix4GetPosition(const glm::mat4 &matrix) {
-        return glm::vec3(matrix[3]);
-    }
-
-    export glm::vec3 Matrix4GetScale(const glm::mat4 &matrix) {
-        glm::vec3 scale;
-        scale.x = glm::length(glm::vec3(matrix[0]));
-        scale.y = glm::length(glm::vec3(matrix[1]));
-        scale.z = glm::length(glm::vec3(matrix[2]));
-        return scale;
-    }
-
-    export glm::quat Matrix4GetRotationQuaternion(const glm::mat4 &matrix) {
-        const glm::vec3 scale = Matrix4GetScale(matrix);
-        glm::mat3 rotationMatrix;
-        rotationMatrix[0] = glm::vec3(matrix[0]) / scale.x;
-        rotationMatrix[1] = glm::vec3(matrix[1]) / scale.y;
-        rotationMatrix[2] = glm::vec3(matrix[2]) / scale.z;
-        return glm::quat_cast(rotationMatrix);
-    }
-
-    export glm::vec3 Matrix4GetRotationEulerAngles(const glm::mat4 &matrix) {
-        return glm::eulerAngles(Matrix4GetRotationQuaternion(matrix));
-    }
-
-    export glm::vec3 Matrix4GetRotationAngles(const glm::mat4 &matrix) {
-        return glm::degrees(Matrix4GetRotationEulerAngles(matrix));
-    }
-}
+// namespace CEngine::Utils {
+//     export glm::vec3 Matrix4GetPosition(const glm::mat4 &matrix) {
+//         return glm::vec3(matrix[3]);
+//     }
+//
+//     export glm::vec3 Matrix4GetScale(const glm::mat4 &matrix) {
+//         glm::vec3 scale;
+//         scale.x = glm::length(glm::vec3(matrix[0]));
+//         scale.y = glm::length(glm::vec3(matrix[1]));
+//         scale.z = glm::length(glm::vec3(matrix[2]));
+//         return scale;
+//     }
+//
+//     export glm::quat Matrix4GetRotationQuaternion(const glm::mat4 &matrix) {
+//         const glm::vec3 scale = Matrix4GetScale(matrix);
+//         glm::mat3 rotationMatrix;
+//         rotationMatrix[0] = glm::vec3(matrix[0]) / scale.x;
+//         rotationMatrix[1] = glm::vec3(matrix[1]) / scale.y;
+//         rotationMatrix[2] = glm::vec3(matrix[2]) / scale.z;
+//         return glm::quat_cast(rotationMatrix);
+//     }
+//
+//     export glm::vec3 Matrix4GetRotationEulerAngles(const glm::mat4 &matrix) {
+//         return glm::eulerAngles(Matrix4GetRotationQuaternion(matrix));
+//     }
+//
+//     export glm::vec3 Matrix4GetRotationAngles(const glm::mat4 &matrix) {
+//         return glm::degrees(Matrix4GetRotationEulerAngles(matrix));
+//     }
+// }
 
 namespace CEngine::Utils {
     /**

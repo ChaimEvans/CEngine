@@ -9,6 +9,7 @@
 module;
 #include "imgui/imgui.h"
 export module CEngine.UI.EditorUI:FileBrowser;
+import :SceneTreeBrowser;
 import std;
 import CEngine.Logger;
 import CEngine.ModelImporter;
@@ -53,7 +54,7 @@ namespace CEngine {
         }
 
         // 展示缓存的文件树，按文件夹在前、文件在后显示
-        void ShowDirectory(FileNode *node = nullptr) {
+        void ShowDirectory(const SceneTreeBrowser &scene_tree_browser, FileNode *node = nullptr) {
             if (node == nullptr) node = &root;
             if (node->type == FileNodeType::Directory) {
                 auto flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_Selected;
@@ -67,7 +68,7 @@ namespace CEngine {
 
                     // 递归展示子节点
                     for (auto &child: node->children) {
-                        ShowDirectory(&child);
+                        ShowDirectory(scene_tree_browser, &child);
                     }
                     ImGui::TreePop();
                 }
@@ -79,8 +80,10 @@ namespace CEngine {
                     for (auto &[name, shader]: ShaderProgram::All_Instances) {
                         if (ImGui::MenuItem(std::format("Open With Shader \"{}\"", name).c_str())) {
                             if (const auto model = ModelImporter::import_model(node->path.string().c_str(), shader); model->IsValid()) {
-                                Engine::GetIns()->getRoot()->RemoveAllChildren();
-                                Engine::GetIns()->getRoot()->AddChild(model);
+                                if (scene_tree_browser.NodeSelected != nullptr)
+                                    scene_tree_browser.NodeSelected->AddChild(model);
+                                else
+                                    Engine::GetIns()->getRoot()->AddChild(model);
                             }
                         }
                     }

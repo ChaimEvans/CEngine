@@ -27,7 +27,8 @@ namespace CEngine {
 
         void DisplaySceneTreeBrowser() {
             std::stack<std::pair<Node *, int> > stack;
-            stack.push({Engine::GetIns()->getRoot(), 0});
+            for (auto node: Engine::GetIns()->getRoot()->GetChildren())
+                stack.push({node, 0});
             while (!stack.empty()) {
                 auto [node, tab] = stack.top();
                 stack.pop();
@@ -47,7 +48,10 @@ namespace CEngine {
                     node_name = std::format("{}({}) {}", std::string(tab, ' '), node->GetTypeName(), node->getName());
                 }
                 if (ImGui::Selectable(node_name.c_str(), node == NodeSelected)) {
-                    NodeSelected = node;
+                    if (node != NodeSelected)
+                        NodeSelected = node;
+                    else
+                        NodeSelected = nullptr;
                 }
                 if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && ImGui::IsItemHovered()) {
                     NodeIsFolding[node] = !NodeIsFolding[node];

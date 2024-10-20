@@ -13,6 +13,7 @@ module;
 export module CEngine.UI.EditorUI:Inspector;
 import :SceneTreeBrowser;
 import std;
+import CEngine.Base;
 import CEngine.Node;
 import CEngine.Logger;
 import CEngine.Utils;
@@ -47,9 +48,9 @@ namespace CEngine {
                     node3d->SetPosition(glm::vec3(pos_l[0], pos_l[1], pos_l[2]));
                 }
                 float rot_l[3];
-                Utils::vec3_to_float3(node3d->GetRotationAngles(), rot_l);
+                Utils::vec3_to_float3(node3d->GetRotation().ToVec3(), rot_l);
                 if (ImGui::DragFloat3("Rotation (L)", rot_l, 0.01f)) {
-                    node3d->SetRotation(glm::vec3(rot_l[0], rot_l[1], rot_l[2]));
+                    node3d->SetRotation(EulerRotation::FromDegreesXYZ(rot_l[0], rot_l[1], rot_l[2]));
                 }
                 float scale_l[3];
                 Utils::vec3_to_float3(node3d->GetScale(), scale_l);
@@ -59,7 +60,7 @@ namespace CEngine {
                 ImGui::SeparatorText("World");
                 ImGui::BeginDisabled();
                 ImGui::DragFloat3("Position (W)", const_cast<float *>(glm::value_ptr(node3d->GetWorldPosition())));
-                ImGui::DragFloat3("Rotation (W)", const_cast<float *>(glm::value_ptr(node3d->GetWorldRotationAngles())));
+                ImGui::DragFloat3("Rotation (W)", const_cast<float *>(glm::value_ptr(node3d->GetWorldRotation().ToVec3())));
                 ImGui::DragFloat3("Scale (W)", const_cast<float *>(glm::value_ptr(node3d->GetWorldScale())));
                 ImGui::EndDisabled();
                 ImGui::TreePop();

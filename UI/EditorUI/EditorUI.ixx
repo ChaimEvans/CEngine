@@ -54,18 +54,18 @@ namespace CEngine {
             // Menu Bar
             if (ImGui::BeginMainMenuBar()) {
                 if (ImGui::BeginMenu("File")) {
-                    ImGui::MenuItem("New Scene");
+                    if (ImGui::MenuItem("New Scene"))
+                        Engine::GetIns()->getRoot()->RemoveAllChildren();
                     ImGui::MenuItem("Open Scene");
-                    if (ImGui::MenuItem("Save Scene")) {
+                    if (ImGui::MenuItem("Save Scene"))
                         Utils::ShowSaveFileDialog();
-                    }
-                    if (ImGui::MenuItem("Open Directory")) {
+                    if (ImGui::MenuItem("Open Directory"))
                         if (const auto path = Utils::ShowSelectFolderDialog(); !path.empty())
                             file_browser.setRootPath(path);
-                    }
                     if (ImGui::MenuItem("Refresh Directory"))
                         file_browser.RefreshCache();
-                    ImGui::MenuItem("Exit");
+                    if(ImGui::MenuItem("Exit"))
+                        Engine::GetIns()->Exit();
                     ImGui::EndMenu();
                 }
                 if (ImGui::BeginMenu("Edit")) {
@@ -125,7 +125,7 @@ namespace CEngine {
                     if (ImGui::BeginChild("File Browser", ImVec2(0, 0), ImGuiChildFlags_None)) {
                         if (ImGui::BeginTabBar("##tabs#File Browser")) {
                             if (ImGui::BeginTabItem("File Browser")) {
-                                file_browser.ShowDirectory();
+                                file_browser.ShowDirectory(scene_tree_browser);
                                 ImGui::EndTabItem();
                             }
                             ImGui::EndTabBar();
