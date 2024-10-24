@@ -11,9 +11,10 @@ module;
 export module CEngine.Node:Camera3D;
 import :Node3D;
 import CEngine.Render;
+import CEngine.Event;
 
 namespace CEngine {
-    export class Camera3D final : public Node3D, Camera {
+    export class Camera3D final : public Node3D, public Camera {
     public:
         static Camera3D *Create(const float fov = 75.0f, const float aspect_ratio = 16.0f / 9.0f, const float z_near = 0.1f, const float z_far = 100.0f) {
             return new Camera3D(fov, aspect_ratio, z_near, z_far);
@@ -23,12 +24,37 @@ namespace CEngine {
             return "Camera3D";
         }
 
-        glm::mat4 GetProjectionMatrix() const override {
-            return Camera::GetProjectionMatrix();
+        void UpdateViewMatrix() {
+            ViewMatrix = Camera::GetViewMatrix(Position, -GetForward(true), GetUp(true));
         }
 
-        glm::mat4 GetViewMatrix() override {
-            return Camera::GetViewMatrix(Position, GetForward(true), GetUp(true));
+        Camera3D &SetPosition(const glm::vec3 &p, const bool updateM = true) override {
+            Node3D::SetPosition(p, updateM);
+            UpdateViewMatrix();
+            return *this;
+        }
+
+        Camera3D &SetRotation(const EulerRotation &e, const bool updateM = true) override {
+            Node3D::SetRotation(e, updateM);
+            UpdateViewMatrix();
+            return *this;
+        }
+
+        Camera3D &SetScale(const glm::vec3 &s, const bool updateM = true) override {
+            Node3D::SetScale(s, updateM);
+            UpdateViewMatrix();
+            return *this;
+        }
+
+        Camera3D &UpdateModelMatrix() override {
+            Node3D::UpdateModelMatrix();
+            UpdateViewMatrix();
+            return *this;
+        }
+
+        void SetModelMatrix(const glm::mat4 &matrix) override {
+            Node3D::SetModelMatrix(matrix);
+            UpdateViewMatrix();
         }
 
     private:

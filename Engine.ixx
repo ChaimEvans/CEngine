@@ -9,6 +9,8 @@
 module;
 #include <glad/glad.h>
 #include <glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/ext/matrix_transform.hpp>
 export module CEngine.Engine;
 import std;
 import CEngine.Base;
@@ -54,8 +56,15 @@ namespace CEngine {
         */
         void Exit() const;
 
+        std::pair<int, int> GetScreenSize() const;
+
+        void LoadAllPresets() const;
+
         /// @property RootNode
         Node3D *getRoot() const { return RootNode; }
+
+        /// @property ToolNode
+        Node3D *getToolNode() const { return ToolNode; }
 
         /// @property window
         GLFWwindow *getWindow() const { return window; }
@@ -88,6 +97,9 @@ namespace CEngine {
          */
         Event<void()> Event_Destroy;
 
+        /// Ready时添加飞行相机
+        bool AddFlyCamera3DWhenReady = false;
+
     private:
         Engine();
         /// @brief 引擎实例对象指针
@@ -98,6 +110,10 @@ namespace CEngine {
         UI *ui;
         /// @brief 节点根目录
         Node3D *RootNode = Node3D::Create();
+        /// 工具节点
+        Node3D *ToolNode = Node3D::Create();
+        /// 相机
+        Camera *CurrentCamera;
 
         /**
         * 当引擎准备就绪时
@@ -107,11 +123,16 @@ namespace CEngine {
         * 引擎帧处理函数
         * @return 处理用时(ms)
         */
-        double Process();
+        double Process(double DeltaTime);
         /**
         * 当引擎退出时
         */
         void Destroy();
+
+        /**
+         * 向ToolNode添加飞行相机
+         */
+        void AddFlyCamera3D() const;
     };
 
     const char *Engine::TAG = "引擎";
@@ -123,7 +144,8 @@ namespace CEngine {
         glfwInit();
         glfwWindowHint(GLFW_VERSION_MAJOR, 4);
         glfwWindowHint(GLFW_VERSION_MINOR, 6);
-        RootNode->setName("RootNode");
+        RootNode->setName("Root");
+        ToolNode->setName("ToolNode");
     }
 
     Engine *Engine::GetIns() {
@@ -152,18 +174,15 @@ namespace CEngine {
             return false;
         }
         LogS(TAG) << "GLAD加载成功.";
-        glfwSetFramebufferSizeCallback(window, [](GLFWwindow *_window, const int _width, int _height) {
-            glViewport(0, 0, _width, _height);
-            LogI(TAG) << "设置Viewport: " << _width << "x" << _height;
-            GetIns()->Event_WindowResized.Invoke(_window, _width, _height);
-        });
         return true;
     }
 
     void Engine::Loop() {
         Ready();
+        double DeltaTime = 0;
         while (!glfwWindowShouldClose(window)) {
-            Event_Process.Invoke(Process());
+            DeltaTime = Process(DeltaTime);
+            Event_Process.Invoke(DeltaTime);
             glfwSwapBuffers(window);
             glfwPollEvents();
         }
@@ -185,21 +204,50 @@ namespace CEngine {
     }
 
     void Engine::Ready() {
+        // 窗口大小改变事件
+        glfwSetFramebufferSizeCallback(window, [](GLFWwindow *_window, const int _width, int _height) {
+            glViewport(0, 0, _width, _height);
+            LogI(TAG) << "设置Viewport: " << _width << "x" << _height;
+            GetIns()->Event_WindowResized.Invoke(_window, _width, _height);
+        });
+        // 打印最大Uniform数量
         GLint maxUniformLocations;
         glGetIntegerv(GL_MAX_UNIFORM_LOCATIONS, &maxUniformLocations);
         LogI(TAG) << "当前设备最大Uniform数量: " << maxUniformLocations;
+        // 背面剔除
         glEnable(GL_CULL_FACE);
-        ShaderProgram::LoadPresets();
+        // 订阅Camera激活事件
+        Camera::Event_CameraActivated += [&](Camera *cam) {
+            this->CurrentCamera = cam;
+        };
+        if (AddFlyCamera3DWhenReady) AddFlyCamera3D();
+        // 触发Event
         Event_Ready.Invoke();
     }
 
-    double Engine::Process() {
+    double Engine::Process(const double DeltaTime) {
+        // 计时开始
         const double time = glfwGetTime();
+        // 设置清空颜色
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        // 清空颜色缓冲区
         glClear(GL_COLOR_BUFFER_BIT);
+        // 清空深度缓冲区
         glClear(GL_DEPTH_BUFFER_BIT);
+        // 重置纹理槽
         Texture::ResetTextureSlot();
+        // 获得视图矩阵和透视矩阵
+        glm::mat4 viewM, projectM;
+        if (CurrentCamera->IsValid()) {
+            viewM = CurrentCamera->GetViewMatrix();
+            projectM = CurrentCamera->GetProjectionMatrix();
+        } else {
+            viewM = glm::mat4(1.f);
+            projectM = glm::mat4(1.f);
+        }
+        // projectM = glm::scale(glm::mat4(1.f), glm::vec3(9.f / 16.f, 1.f, 1.f));
         std::stack<Node *> stack;
+        stack.push(ToolNode);
         stack.push(RootNode);
         while (!stack.empty()) {
             Node *node = stack.top();
@@ -207,8 +255,10 @@ namespace CEngine {
             if (node->GetChildCount() > 0)
                 for (const auto child: node->GetChildren())
                     stack.push(child);
+            if (const auto behaviour = node->GetBehaviour(); behaviour != nullptr)
+                behaviour->Process(DeltaTime);
             if (const auto ru3d = dynamic_cast<RenderUnit3D *>(node); ru3d != nullptr) {
-                ru3d->Render();
+                ru3d->Render(viewM, projectM);
                 DrawCallEnd();
             }
         }
@@ -221,8 +271,15 @@ namespace CEngine {
         glfwDestroyWindow(window);
         glfwTerminate();
         delete RootNode;
+        delete ToolNode;
         delete ui;
         UI::Destroy();
         delete this;
+    }
+
+    std::pair<int, int> Engine::GetScreenSize() const {
+        int _window_width, _window_height;
+        glfwGetWindowSize(window, &_window_width, &_window_height);
+        return std::make_pair(_window_width, _window_height);
     }
 }

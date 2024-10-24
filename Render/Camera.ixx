@@ -13,23 +13,21 @@ module;
 export module CEngine.Render:Camera;
 import std;
 import CEngine.Base;
+import CEngine.Event;
 
 namespace CEngine {
     export class Camera : public Object {
     public:
-        enum class MovementEnum {
-            Forward,
-            Backward,
-            Upward,
-            Downward,
-            Right,
-            Left,
-        };
+        static Event<void(Camera *)> Event_CameraActivated;
 
         explicit Camera(const float fov = 75.0f, const float aspect_ratio = 16.0f / 9.0f, const float z_near = 0.1f,
                         const float z_far = 100.0f): FOV(fov), AspectRatio(aspect_ratio), zNear(z_near), zFar(z_far) {
             UpdateProjectionMatrix();
         };
+
+        void Active() {
+            Event_CameraActivated.Invoke(this);
+        }
 
         void SetFov(const float fov) {
             FOV = fov;
@@ -51,19 +49,21 @@ namespace CEngine {
         virtual glm::mat4 GetProjectionMatrix() const { return ProjectionMatrix; }
 
         /// 需派生类实现
-        virtual glm::mat4 GetViewMatrix() { return glm::mat4(); }
+        virtual glm::mat4 GetViewMatrix() const { return ViewMatrix; }
 
         /// 获取View矩阵
         virtual glm::mat4 GetViewMatrix(const glm::vec3 &Position, const glm::vec3 &Front, const glm::vec3 &Up) const {
             return glm::lookAt(Position, Position + Front, Up);
         }
 
-    private:
+    protected:
         /// 更新透视矩阵
         void UpdateProjectionMatrix() {
             ProjectionMatrix = glm::perspective(glm::radians(FOV), AspectRatio, zNear, zFar);
         }
 
+        /// 视角矩阵（该变量用于缓存）
+        glm::mat4 ViewMatrix = glm::mat4(1.0f);
         /// 透视矩阵（该变量用于缓存）
         glm::mat4 ProjectionMatrix = glm::mat4(1.0f);
         /// 视场角
@@ -75,4 +75,6 @@ namespace CEngine {
         /// 远裁剪平面
         float zFar;
     };
+
+    Event<void(Camera *)> Camera::Event_CameraActivated = Event<void(Camera *)>();
 }

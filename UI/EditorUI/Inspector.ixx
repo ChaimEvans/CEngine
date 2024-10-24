@@ -48,7 +48,7 @@ namespace CEngine {
                     node3d->SetPosition(glm::vec3(pos_l[0], pos_l[1], pos_l[2]));
                 }
                 float rot_l[3];
-                Utils::vec3_to_float3(node3d->GetRotation().ToVec3(), rot_l);
+                Utils::vec3_to_float3(node3d->GetRotation().ToDegreesVec3XYZ(), rot_l);
                 if (ImGui::DragFloat3("Rotation (L)", rot_l, 0.01f)) {
                     node3d->SetRotation(EulerRotation::FromDegreesXYZ(rot_l[0], rot_l[1], rot_l[2]));
                 }
@@ -60,7 +60,7 @@ namespace CEngine {
                 ImGui::SeparatorText("World");
                 ImGui::BeginDisabled();
                 ImGui::DragFloat3("Position (W)", const_cast<float *>(glm::value_ptr(node3d->GetWorldPosition())));
-                ImGui::DragFloat3("Rotation (W)", const_cast<float *>(glm::value_ptr(node3d->GetWorldRotation().ToVec3())));
+                ImGui::DragFloat3("Rotation (W)", const_cast<float *>(glm::value_ptr(node3d->GetWorldRotation().ToDegreesVec3XYZ())));
                 ImGui::DragFloat3("Scale (W)", const_cast<float *>(glm::value_ptr(node3d->GetWorldScale())));
                 ImGui::EndDisabled();
                 ImGui::TreePop();

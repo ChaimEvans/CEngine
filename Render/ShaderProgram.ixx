@@ -35,9 +35,6 @@ namespace CEngine {
             All_Instances.erase(Name);
         }
 
-        /// @file ShaderProgram_Presets.ixx
-        static void LoadPresets();
-
         /**
          * 创建ShaderProgram(自动生成Name)
          * @return 返回指针

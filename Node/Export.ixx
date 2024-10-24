@@ -6,6 +6,8 @@ export import :Node3D;
 export import :RenderUnit3D;
 export import :PBR3D;
 export import :Camera3D;
+export import :Behaviour;
+export import :BehaviourFactory;
 import CEngine.Logger;
 
 void CEngine::Node::PrintChildrenTree(const Logger::LogLevel ll) {

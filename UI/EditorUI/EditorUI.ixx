@@ -41,10 +41,9 @@ namespace CEngine {
 
         void DrawUI() override {
             // 窗口大小
-            int _window_width, _window_height;
-            glfwGetWindowSize(Window, &_window_width, &_window_height);
-            const auto window_width = static_cast<float>(_window_width);
-            const auto window_height = static_cast<float>(_window_height);
+            const auto [_w, _h] = Engine::GetIns()->GetScreenSize();
+            const auto window_width = static_cast<float>(_w);
+            const auto window_height = static_cast<float>(_h);
             // GPU Resource Viewer
             if (show_gpu_resource_viewer)
                 gpu_resource_viewer.ShowGPUResourceViewer(&show_gpu_resource_viewer, window_width, window_height);

@@ -28,32 +28,33 @@ namespace CEngine {
             return "Node3D";
         }
 
-        Node3D &SetPosition(const glm::vec3 p, const bool updateM = true) {
+        virtual Node3D &SetPosition(const glm::vec3 &p, const bool updateM = true) {
             Position = p;
             if (updateM) UpdateModelMatrix();
             return *this;
         }
 
-        Node3D &SetRotation(const EulerRotation e, const bool updateM = true) {
+        virtual Node3D &SetRotation(const EulerRotation &e, const bool updateM = true) {
             Rotation = e;
             if (updateM) UpdateModelMatrix();
             return *this;
         }
 
-        Node3D &SetScale(const glm::vec3 s, const bool updateM = true) {
+        virtual Node3D &SetScale(const glm::vec3 &s, const bool updateM = true) {
             Scale = s;
             if (updateM) UpdateModelMatrix();
             return *this;
         }
 
-        Node3D &UpdateModelMatrix() {
+        virtual Node3D &UpdateModelMatrix() {
             // 平移矩阵 * 旋转矩阵 * 缩放矩阵
-            ModelMatrix = glm::translate(glm::mat4(1.0f), Position) * glm::mat4_cast(Rotation.ToOrientation()) * glm::scale(glm::mat4(1.0f), Scale);
+            // ModelMatrix = glm::translate(glm::mat4(1.0f), Position) * glm::mat4_cast(Rotation.ToOrientation()) * glm::scale(glm::mat4(1.0f), Scale);
+            ModelMatrix = glm::mat4_cast(Rotation.ToOrientation()) * glm::translate(glm::mat4(1.0f), Position) * glm::scale(glm::mat4(1.0f), Scale);
             return *this;
         }
 
-        void SetModelMatrix(const glm::mat4 &matrix) {
-            Position = glm::vec3(GetWorldMatrix()[3]);
+        virtual void SetModelMatrix(const glm::mat4 &matrix) {
+            Position = glm::vec3(matrix[3]);
             Scale = {
                 glm::length(glm::vec3(matrix[0])),
                 glm::length(glm::vec3(matrix[1])),
@@ -70,6 +71,7 @@ namespace CEngine {
 
         glm::vec3 GetPosition() const { return Position; }
         EulerRotation GetRotation() const { return Rotation; }
+        EulerRotation *GetRotationPtr() { return &Rotation; }
         glm::vec3 GetScale() const { return Scale; }
         glm::mat4 GetModelMatrix() const { return ModelMatrix; }
 
@@ -119,16 +121,19 @@ namespace CEngine {
 
         glm::vec3 GetForward(const bool world = false) const {
             if (world)
-                return glm::normalize(GetWorldRotation().ToOrientation() * glm::vec3(0.0f, 0.0f, 1.0f));
-            return glm::normalize(Rotation.ToOrientation() * glm::vec3(0.0f, 0.0f, 1.0f));
+                return glm::normalize(GetWorldRotation().ToOrientation() * WorldForward);
+            return glm::normalize(Rotation.ToOrientation() * WorldForward);
         }
 
         glm::vec3 GetRight(const bool world = false) const {
-            return glm::normalize(glm::cross(GetForward(world), glm::vec3(0.0f, 0.0f, 1.0f)));
+            return glm::normalize(glm::cross(WorldUp, GetForward(world)));
         }
 
         glm::vec3 GetUp(const bool world = false) const {
-            return glm::normalize(glm::cross(GetRight(world), GetForward(world)));
+            // auto t1 = GetRight(world);
+            // auto t2 = GetForward(world);
+            // auto t3 = glm::cross(GetRight(world), GetForward(world));
+            return glm::normalize(glm::cross(GetForward(world), GetRight(world)));
         }
 
     protected:

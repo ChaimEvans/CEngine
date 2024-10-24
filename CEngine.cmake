@@ -66,6 +66,7 @@ target_link_libraries(
         Logger
         Utils
         Image
+        Event
 )
 
 # 图像相关
@@ -82,7 +83,7 @@ target_link_libraries(
 
 # Node系列
 add_library(Node)
-file(GLOB node_sources "CEngine/Node/*.ixx")
+file(GLOB node_sources "CEngine/Node/*.ixx" "CEngine/Node/Behaviour/*.ixx")
 target_sources(Node PUBLIC FILE_SET CXX_MODULES FILES ${node_sources})
 target_link_libraries(
         Node
@@ -102,14 +103,6 @@ target_link_libraries(
         Render
         ${assimp}
 )
-
-# Windows文件对话框
-#add_library(WindowsFileDialog)
-#target_sources(WindowsFileDialog PUBLIC FILE_SET CXX_MODULES FILES "CEngine/Utils/WindowsFileDialog.ixx")
-#target_link_libraries(
-#        WindowsFileDialog
-#        std_modules
-#)
 
 # 其他工具类
 add_library(Utils)
@@ -148,6 +141,32 @@ target_link_libraries(
         Logger
 )
 
+# Behaviour预设
+add_library(BehaviourPresets)
+file(GLOB behaviour_presets_sources "CEngine/Presets/Behaviours/*.ixx")
+target_sources(BehaviourPresets PUBLIC FILE_SET CXX_MODULES FILES ${behaviour_presets_sources})
+target_link_libraries(
+        BehaviourPresets
+        std_modules
+        Engine
+        Node
+)
+
+# 预设加载器
+add_library(PresetsLoader)
+target_sources(PresetsLoader PUBLIC FILE_SET CXX_MODULES FILES "CEngine/Presets/PresetsLoader.ixx")
+target_link_libraries(
+        PresetsLoader
+        std_modules
+        Base
+        Render
+        Node
+        Logger
+        Utils
+        BehaviourPresets
+        Engine
+)
+
 # 引擎主模块
 add_library(Engine)
 target_sources(Engine PUBLIC FILE_SET CXX_MODULES FILES "CEngine/Engine.ixx")
@@ -177,7 +196,7 @@ if (CMAKE_HOST_SYSTEM_NAME MATCHES "Windows")
             "${CMAKE_BINARY_DIR}/assimp-vc143-mt.dll")
 endif ()
 
-add_custom_command(TARGET Render POST_BUILD
+add_custom_command(TARGET PresetsLoader POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_SOURCE_DIR}/CEngine/Presets/Shader"
         "${CMAKE_BINARY_DIR}/Shader")

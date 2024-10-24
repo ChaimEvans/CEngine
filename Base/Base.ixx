@@ -28,7 +28,7 @@ namespace CEngine {
         float Roll = 0.0f;
 
         static EulerRotation FromDegrees(const float yaw, const float pitch, const float roll) {
-            return EulerRotation{glm::degrees(yaw), glm::degrees(pitch), glm::degrees(roll)};
+            return EulerRotation{glm::radians(yaw), glm::radians(pitch), glm::radians(roll)};
         }
 
         static EulerRotation FromDegreesXYZ(const float x, const float y, const float z) {
@@ -41,8 +41,12 @@ namespace CEngine {
                                   glm::angleAxis(Roll, glm::vec3(0.0f, 0.0f, 1.0f)));
         }
 
-        glm::vec3 ToVec3() const {
+        glm::vec3 ToVec3XYZ() const {
             return {Pitch, Yaw, Roll};
+        }
+
+        glm::vec3 ToDegreesVec3XYZ() const {
+            return {glm::degrees(Pitch), glm::degrees(Yaw), glm::degrees(Roll)};
         }
     };
 }

@@ -9,6 +9,7 @@
 module;
 
 export module CEngine.Node:Node;
+import :Behaviour;
 import std;
 import CEngine.Base;
 import CEngine.Utils;
@@ -163,6 +164,14 @@ namespace CEngine {
         /// @property Parent
         Node *getParent() const { return Parent; }
 
+        /// @property Behaviour
+        std::shared_ptr<Behaviour> GetBehaviour() const { return Behaviour; }
+
+        void SetBehaviour(const std::shared_ptr<Behaviour> &behaviour) {
+            Behaviour = behaviour;
+            Behaviour->SetParentNode(this);
+        }
+
     protected:
         Node() {
             Name = Utils::GenerateUUID();
@@ -174,6 +183,8 @@ namespace CEngine {
         Node *Parent = nullptr;
         /// @brief 所有子级
         std::unordered_map<std::string, Node *> Children;
+        ///
+        std::shared_ptr<Behaviour> Behaviour = nullptr;
     };
 
     const char *Node::TAG = "Node";
